@@ -36,6 +36,14 @@ class ControlPointsServer:
             control_polygon_points.polygon.points.append(control_point)
         self.control_points_pub_.publish(control_polygon_points)
 
+        time.sleep(len(self.control_points_) + 4.0)
+
+        control_polygon_points.polygon.points = []
+        for i in range(0, len(self.control_points_)):
+            control_point = self.vector3dConvertToPoint32(self.control_points_[len(self.control_points_) -1 - i])
+            control_polygon_points.polygon.points.append(control_point)
+        self.control_points_pub_.publish(control_polygon_points)
+
 if __name__ == '__main__':
     try:
         control_pts_server = ControlPointsServer()

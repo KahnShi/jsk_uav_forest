@@ -35,9 +35,12 @@ void triangleGenerator::splineInputParam()
     control_polygon_points.polygon.points.push_back(time_point);
     vector3dConvertToPoint32(m_control_point_vec[i], control_point);
     control_polygon_points.polygon.points.push_back(control_point);
+    std::cout << "[" << control_point.x << ", " << control_point.y << ", " << control_point.z << "]\n";
   }
   m_bspline_generator.bsplineParamInput(&control_polygon_points);
   m_bspline_generator.getDerive();
+  m_uav.m_bspline_traj_ptr = &m_bspline_generator;
+  m_uav.m_traj_updated = true;
 }
 
 inline void triangleGenerator::vector3dConvertToPoint32(Vector3d point3, geometry_msgs::Point32& point32)
@@ -63,11 +66,14 @@ void triangleGenerator::uavOdomCallback(const nav_msgs::OdometryConstPtr& msg)
     m_pub_uav_cmd.publish(m_uav.m_uav_cmd);
     return;
   }
+  else{
+    m_uav.trackGlobalTrajectory();
+    m_pub_uav_cmd.publish(m_uav.m_uav_cmd);
+  }
 }
 
 void triangleGenerator::uavStartFlagCallback(const std_msgs::Empty msg)
 {
-  m_uav.m_uav_state = 2;
 }
 
 void triangleGenerator::controlPointsCallback(const geometry_msgs::PolygonStampedConstPtr& msg)

@@ -64,7 +64,7 @@ public:
   bsplineGenerate *m_bspline_traj_ptr;
   bool m_traj_updated;
   bool m_traj_first_updated;
-  bool m_traj_start_time;
+  double m_traj_start_time;
 
   /* Publisher */
   std::string m_uav_cmd_pub_topic_name;

@@ -54,13 +54,24 @@ void QuadrotorCommand::getUavOdom(const nav_msgs::OdometryConstPtr& uav_odom_msg
 
 void QuadrotorCommand::trackGlobalTrajectory()
 {
-  if (m_uav_state == 3){
+  if (m_traj_updated){
+    m_uav_state = 2;
+    m_traj_updated = false;
+    m_traj_start_time = m_uav_odom.header.stamp.toSec();
+  }
+  else if (m_uav_state == 1){
     m_uav_cmd.linear.x = 0.0;
     m_uav_cmd.linear.y = 0.0;
     m_uav_cmd.linear.z = 0.0;
     return;
   }
+
   double uav_current_traj_time = m_uav_odom.header.stamp.toSec() - m_traj_start_time;
+  if (uav_current_traj_time >= m_bspline_traj_ptr->m_tn){
+    m_uav_state = 1;
+    ROS_INFO("\nArrived at last control point. \n");
+    return;
+  }
   tf::Vector3 uav_des_world_vel = vectorToVector3(m_bspline_traj_ptr->evaluateDerive(uav_current_traj_time));
   tf::Vector3 uav_des_world_pos = vectorToVector3(m_bspline_traj_ptr->evaluate(uav_current_traj_time));
   tf::Vector3 uav_real_world_pos;

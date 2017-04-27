@@ -5,6 +5,7 @@ void triangleGenerator::onInit()
   private_nh.param("uav_odom_sub_topic_name", m_uav_odom_sub_topic_name, (std::string)"ground_truth/state");
   private_nh.param("spline_path_pub_topic_name", m_spline_path_pub_topic_name, (std::string)"spline_path");
   private_nh.param("uav_cmd_pub_topic_name", m_uav_cmd_pub_topic_name, (std::string)"cmd_vel");
+  private_nh.param("control_points_sub_topic_name", m_control_points_sub_topic_name, (std::string)"control_points");
   private_nh.param("spline_degree", m_spline_degree, 2);
   private_nh.param("spline_segment_time", m_spline_segment_time, 1.0);
 
@@ -14,6 +15,7 @@ void triangleGenerator::onInit()
   /* Subscriber */
   m_sub_uav_odom = m_nh.subscribe<nav_msgs::Odometry>(m_uav_odom_sub_topic_name, 1, &triangleGenerator::uavOdomCallback, this);
   m_sub_uav_start_flag = m_nh.subscribe<std_msgs::Empty>("/simulator_uav_start_flag", 1, &triangleGenerator::uavStartFlagCallback, this);
+  m_sub_control_points = m_nh.subscribe<geometry_msgs::PolygonStamped>(m_control_points_sub_topic_name, 1, &triangleGenerator::controlPointsCallback, this);
 
   /* Publisher */
   m_pub_uav_cmd  = m_nh.advertise<geometry_msgs::Twist>(m_uav_cmd_pub_topic_name, 1);
@@ -45,6 +47,13 @@ inline void triangleGenerator::vector3dConvertToPoint32(Vector3d point3, geometr
   point32.z = point3.z();
 }
 
+inline void triangleGenerator::point32ConvertToVector3d(geometry_msgs::Point32 point32, Vector3d& point3)
+{
+  point3.x() = point32.x;
+  point3.y() = point32.y;
+  point3.z() = point32.z;
+}
+
 void triangleGenerator::uavOdomCallback(const nav_msgs::OdometryConstPtr& msg)
 {
   m_uav_odom = *msg;
@@ -59,4 +68,16 @@ void triangleGenerator::uavOdomCallback(const nav_msgs::OdometryConstPtr& msg)
 void triangleGenerator::uavStartFlagCallback(const std_msgs::Empty msg)
 {
   m_uav.m_uav_state = 2;
+}
+
+void triangleGenerator::controlPointsCallback(const geometry_msgs::PolygonStampedConstPtr& msg)
+{
+  if (!m_control_point_vec.empty())
+    m_control_point_vec.clear();
+  for (int i = 0; i < msg->polygon.points.size(); ++i){
+    Vector3d vec;
+    point32ConvertToVector3d(msg->polygon.points[i], vec);
+    m_control_point_vec.push_back(vec);
+  }
+  splineInputParam();
 }

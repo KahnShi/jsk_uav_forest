@@ -18,11 +18,13 @@ class triangleGenerator
   /* Subscriber */
   ros::Subscriber m_sub_uav_odom;
   ros::Subscriber m_sub_uav_start_flag;
+  ros::Subscriber m_sub_control_points;
 
   /* Publisher */
   ros::Publisher m_pub_uav_cmd;
 
   std::string m_uav_odom_sub_topic_name;
+  std::string m_control_points_sub_topic_name;
   std::string m_spline_path_pub_topic_name;
   std::string m_uav_cmd_pub_topic_name;
 
@@ -39,10 +41,11 @@ class triangleGenerator
   /* functions */
   void onInit();
   inline void vector3dConvertToPoint32(Vector3d point3, geometry_msgs::Point32& point32);
+  inline void point32ConvertToVector3d(geometry_msgs::Point32 point32, Vector3d& point3);
   void splineInputParam();
   void uavOdomCallback(const nav_msgs::OdometryConstPtr& msg);
   void uavStartFlagCallback(const std_msgs::Empty msg);
-
+  void controlPointsCallback(const geometry_msgs::PolygonStampedConstPtr& msg);
 };
 
 #endif

@@ -10,7 +10,6 @@
   <arg name="rqt_gui" default="True" />
   <arg name="circle_motion_times" default="1" />
   <arg name="plannar" default="false" />
-  <arg name="diy_map" default="false" />
   <arg name="mapping" default="false" />
   <arg name="aggressive_mode" default="true" />
 
@@ -19,8 +18,8 @@
   <arg name="start_z" value="0.5"/>
 
   <include file="$(find gazebo_ros)/launch/empty_world.launch">
-    <arg name="world_name" value="$(find jsk_uav_forest_simulation)/gazebo_model/world/forest.world" unless="$(arg diy_map)" />
-    <arg name="world_name" value="$(find jsk_uav_forest_simulation)/gazebo_model/world/forest_diy.world" if="$(arg diy_map)" />
+    <arg name="world_name" value="$(find jsk_uav_forest_simulation)/gazebo_model/world/forest.world" unless="$(arg aggressive_mode)" />
+    <arg name="world_name" value="$(find jsk_uav_forest_simulation)/gazebo_model/world/forest_diy.world" if="$(arg aggressive_mode)" />
     <arg name="debug" value="$(arg debug)"/>
     <arg name="gui" value="$(arg gui)" />
     <arg name="headless" default="$(arg headless)"/>

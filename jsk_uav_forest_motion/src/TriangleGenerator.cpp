@@ -8,6 +8,7 @@ void triangleGenerator::onInit()
   private_nh.param("spline_degree", m_spline_degree, 2);
   private_nh.param("spline_segment_time", m_spline_segment_time, 1.0);
 
+  /* bspline */
   m_bspline_generator.onInit(m_spline_degree, true, m_spline_path_pub_topic_name);
 
   /* Subscriber */
@@ -16,6 +17,9 @@ void triangleGenerator::onInit()
 
   /* Publisher */
   m_pub_uav_cmd  = m_nh.advertise<geometry_msgs::Twist>(m_uav_cmd_pub_topic_name, 1);
+
+  /* uav */
+  m_uav.onInit();
 
   ROS_INFO("triangleGenerator init finished.");
 }
@@ -44,9 +48,9 @@ inline void triangleGenerator::vector3dConvertToPoint32(Vector3d point3, geometr
 void triangleGenerator::uavOdomCallback(const nav_msgs::OdometryConstPtr& msg)
 {
   m_uav_odom = *msg;
-  //  m_uav.getUavOdom(msg);
+  m_uav.getUavOdom(msg);
   if (m_uav.m_uav_state == 0){
-    m_uav.uavMovingToPresetHeight(2.0);
+    m_uav.uavMovingToPresetHeight(1.5);
     m_pub_uav_cmd.publish(m_uav.m_uav_cmd);
     return;
   }

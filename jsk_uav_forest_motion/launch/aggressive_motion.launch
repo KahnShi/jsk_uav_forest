@@ -1,11 +1,11 @@
 <?xml version="1.0"?>
 <launch>
-  <arg name="uav_odom_topic_name" default="/modified_odom" />
+  <arg name="uav_odom_topic_name" default="/ground_truth/state" />
 
   ##### Perception Node #####
 
   ##### Motion Node #####
-  <node pkg="jsk_uav_forest_motion" type="aggressive_motion_mode" name="aggressive_motion" output="screen" >
+  <node pkg="jsk_uav_forest_motion" type="spline_path_node" name="aggressive_motion" output="screen" >
     <param name="uav_odom_sub_topic_name" value="$(arg uav_odom_topic_name)"/>
   </node>
 

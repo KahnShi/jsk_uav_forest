@@ -103,14 +103,14 @@ bool QuadrotorCommand::uavMovingToPresetHeight(double height)
   m_uav_state = 0;
   m_uav_cmd.linear.x = 0.0; m_uav_cmd.linear.y = 0.0; m_uav_cmd.linear.z = 0.0;
   if (m_uav_world_pos.getZ() < height){
-    m_uav_cmd.linear.z = 1.0;
+    m_uav_cmd.linear.z = 0.5;
   }
   else if (m_uav_world_pos.getZ() > height + 1.0){
-    m_uav_cmd.linear.z = -1.0;
+    m_uav_cmd.linear.z = -0.5;
   }
   else{
     m_uav_state = 1;
-    ROS_INFO("[Change to state] UAV reached specific height.");
+    ROS_INFO("\n\n[Change to state] UAV reached specific height.\n\n");
     return true;
   }
   return false;

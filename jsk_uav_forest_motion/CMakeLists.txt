@@ -44,7 +44,8 @@ add_library(${PROJECT_NAME} src/QuadrotorCommand.cpp src/TriangleGenerator.cpp
 target_link_libraries(${PROJECT_NAME} ${LINK_LIBS})
 
 ## Declare a cpp executable
-# add_executable(jsk_uav_forest_motion_node src/jsk_uav_forest_motion_node.cpp)
+add_executable(spline_path_node src/spline_path_node.cpp)
+target_link_libraries(spline_path_node ${PROJECT_NAME} ${LINK_LIBS})
 
 ## Add cmake target dependencies of the executable/library
 ## as an example, message headers may need to be generated before nodes

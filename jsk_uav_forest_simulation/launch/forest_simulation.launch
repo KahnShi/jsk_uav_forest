@@ -5,13 +5,14 @@
   <arg name="headless" default="false"/>
   <arg name="gui" default="true" />
   <arg name="use_ground_truth" default="true" />
-  <arg name="manual" default="false" />
+  <arg name="manual" default="true" />
   <arg name="task_kind" default="2" />
   <arg name="rqt_gui" default="True" />
   <arg name="circle_motion_times" default="1" />
   <arg name="plannar" default="false" />
   <arg name="diy_map" default="false" />
   <arg name="mapping" default="false" />
+  <arg name="aggressive_mode" default="true" />
 
   <arg name="start_x" value="-8"/>
   <arg name="start_y" value="0"/>
@@ -36,14 +37,22 @@
   </include>
 
   <!-- perception + motion -->
-  <include file="$(find jsk_uav_forest_motion)/launch/motion.launch">
-    <arg name="use_dji" value="False" />
-    <arg name="uav_odom_topic_name" value="/ground_truth/state" />
-    <arg name="task_kind" value="$(arg task_kind)" />
-    <arg name="circle_motion_times" value="$(arg circle_motion_times)" />
-    <arg name="rqt_gui" value="$(arg rqt_gui)" />
-    <arg name="motion_planning" value="$(arg plannar)" />
-  </include>
+  <group unless = "$(arg aggressive_mode)">
+    <include file="$(find jsk_uav_forest_motion)/launch/motion.launch">
+      <arg name="use_dji" value="False" />
+      <arg name="uav_odom_topic_name" value="/ground_truth/state" />
+      <arg name="task_kind" value="$(arg task_kind)" />
+      <arg name="circle_motion_times" value="$(arg circle_motion_times)" />
+      <arg name="rqt_gui" value="$(arg rqt_gui)" />
+      <arg name="motion_planning" value="$(arg plannar)" />
+    </include>
+  </group>
+
+  <group if = "$(arg aggressive_mode)">
+    <include file="$(find jsk_uav_forest_motion)/launch/aggressive_motion.launch">
+      <arg name="uav_odom_topic_name" value="/ground_truth/state" />
+    </include>
+  </group>
 
   <!-- 2D Mapping -->
   <include file="$(find jsk_uav_forest_common)/launch/2d_mapping.launch" if = "$(arg mapping)" />

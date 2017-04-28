@@ -1,0 +1,9 @@
+   <model name="moving_tree_1" >
+     <pose>-3 0 0 0 0 0</pose>
+     <include>
+       <uri>model://tree</uri>
+     </include>
+     <plugin name="gazebo_moving_object_1" filename="libgazebo_moving_object_plugin.so">
+
+     </plugin>
+   </model>

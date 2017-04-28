@@ -7,7 +7,10 @@
   ##### Motion Node #####
   <node pkg="jsk_uav_forest_motion" type="spline_path_node" name="aggressive_motion" output="screen" >
     <param name="uav_odom_sub_topic_name" value="$(arg uav_odom_topic_name)"/>
+    <param name="spline_degree" value="2"/>
     <param name="spline_segment_time" value="1.0"/>
+    <param name="uav_cmd_traj_track_p_gain" value="0.05"/>
+    <param name="uav_cmd_traj_track_i_gain" value="0.01"/>
   </node>
 
 </launch>

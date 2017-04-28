@@ -6,6 +6,12 @@ import rospy
 from geometry_msgs.msg import PolygonStamped
 from geometry_msgs.msg import Point32
 
+def list_minus(lst1, lst2):
+    lst = []
+    for i in range(0, len(lst1)):
+        lst.append(lst1[i] - lst2[i])
+    return lst
+
 class ControlPointsServer:
     def init(self):
         rospy.init_node('control_points_manually', anonymous=True)
@@ -23,13 +29,31 @@ class ControlPointsServer:
         return pt
 
     def manuallyPublish(self):
-        self.control_points_ = [[-8, 0, 1.5],
-                                [-8, 0, 1.5],
-                                [-6, 2, 1.5],
-                                [-3, 3, 1.5],
-                                [-3, 5, 1.5],
-                                [-5, 6, 1.5],
-                                [-5, 6, 1.5]]
+        self.control_points_ = [[-8, 0, 1.5], #[0, 0]
+                                [-8, 0, 1.5], #[1, 0]
+                                [-7, 0, 1.5], #[2, 1]
+                                [-5, 1, 1.5], #[2, 1]
+                                [-3, 2, 1.5], #[2, 0]
+                                [-1, 2, 1.5], #[1, 0]
+                                [0, 2, 1.5], #[1, -2]
+                                [1, 0, 1.5], #[1, -1]
+                                [2, -1, 1.5], #[1, -1]
+                                [3, -2, 1.5], #[1, 1]
+                                [4, -1, 1.5], #[1, 1]
+                                [5, 1, 1.5], #[1, 2]
+                                [6, 2, 1.5], #[1, 1]
+                                [7, 2, 1.5], #[1, 0]
+                                [8, 1, 1.5], #[1, -1]
+                                [9, 0, 1.5], #[0, 0]
+                                [9, 0, 1.5]
+        ]
+        velocity_lst = []
+        for i in range (1, len(self.control_points_)):
+            velocity_lst.append(list_minus(self.control_points_[i], self.control_points_[i-1]))
+            print velocity_lst[i-1]
+        print "acc: "
+        for i in range (2, len(self.control_points_)):
+            print list_minus(velocity_lst[i-1], velocity_lst[i-2])
         control_polygon_points = PolygonStamped()
         for i in range(0, len(self.control_points_)):
             control_point = self.vector3dConvertToPoint32(self.control_points_[i])

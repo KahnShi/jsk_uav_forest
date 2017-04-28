@@ -52,6 +52,7 @@
     <include file="$(find jsk_uav_forest_motion)/launch/aggressive_motion.launch">
       <arg name="uav_odom_topic_name" value="/ground_truth/state" />
     </include>
+    <node pkg="jsk_uav_forest_simulation" type="vis_diy_world_node.py" name="vis_diy_world_node" />
     <node pkg="rviz" type="rviz" name="rviz" args="-d $(find jsk_uav_forest_simulation)/launch/simulation_aggressive_mode.rviz" unless="$(arg headless)" respawn="true"/>
   </group>
 

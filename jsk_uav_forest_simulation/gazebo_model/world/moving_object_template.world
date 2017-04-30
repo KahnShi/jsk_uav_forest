@@ -4,6 +4,8 @@
        <uri>model://tree</uri>
      </include>
      <plugin name="gazebo_moving_object_1" filename="libgazebo_moving_object_plugin.so">
-
+       <staticObject>true</staticObject>
+       <initDirection>up</initDirection>
+       <topicName>target_tree_pose</topicName>
      </plugin>
    </model>

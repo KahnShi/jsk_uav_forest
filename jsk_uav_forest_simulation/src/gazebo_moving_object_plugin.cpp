@@ -87,6 +87,11 @@ void GazeboMovingObject::Load(physics::ModelPtr _model, sdf::ElementPtr _sdf)
       model_->SetLinkWorldPose(math::Pose(pose_[0], pose_[1], pose_[2], pose_[3], pose_[4], pose_[5]), link_);
     }
 
+    if (_sdf->HasElement("initDirection") && _sdf->GetElement("initDirection")->GetValue())
+    {
+      go_up_flag_ = _sdf->GetElement("initDirection")->Get<std::string>() == "up"?true:false;
+    }
+
   if (!link)
   {
     ROS_FATAL("gazebo_ros_baro plugin error: bodyName: %s does not exist\n", link_name_.c_str());
@@ -103,7 +108,13 @@ void GazeboMovingObject::Load(physics::ModelPtr _model, sdf::ElementPtr _sdf)
   }
 
   node_handle_ = new ros::NodeHandle(namespace_);
-  //pub_score_ = node_handle_->advertise<std_msgs::String>("score", 1, true);  // set latch true
+  std::string pub_pose_topic_name;
+  if (_sdf->HasElement("topicName") && _sdf->GetElement("topicName")->GetValue())
+    pub_pose_topic_name = _sdf->GetElement("topicName")->Get<std::string>();
+  else
+    pub_pose_topic_name = "target_tree_pose";
+  pub_tree_pose_ = node_handle_->advertise<geometry_msgs::Point>(pub_pose_topic_name, 1, true);
+
   ros::NodeHandle param_handle(*node_handle_, "controller");
 
 
@@ -117,11 +128,17 @@ void GazeboMovingObject::Load(physics::ModelPtr _model, sdf::ElementPtr _sdf)
 // Update the controller
 void GazeboMovingObject::Update()
 {
-  if ( static_object_ || terminated_ )
+  if ( terminated_ )
     {
       return;
     }
   math::Pose pose = link_->GetWorldPose();
+  geometry_msgs::Point object_pose;
+  object_pose.x = pose.pos.x;
+  object_pose.y = pose.pos.y;
+  object_pose.z = pose.pos.z;
+  pub_tree_pose_.publish(object_pose);
+
   // Constant speed to go upper boundary and then lower boundary
   double max_y = 3.0;
   if (pose.pos.y > max_y)
@@ -136,6 +153,8 @@ void GazeboMovingObject::Update()
 
   vel_x = 0.0;
   vel_yaw = 0.0;
+  if (static_object_)
+    vel_y = 0.0;
 
   model_->SetLinearVel(math::Vector3(vel_x, vel_y, 0));
   model_->SetAngularVel(math::Vector3(0, 0, vel_yaw));

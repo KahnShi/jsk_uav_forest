@@ -45,7 +45,7 @@
 #include <stdio.h>
 #include <ros/callback_queue.h>
 #include <ros/ros.h>
-#include <std_msgs/String.h>
+#include <geometry_msgs/Point.h>
 #include <string>
 #include <iostream>
 #include <vector>
@@ -75,7 +75,7 @@ private:
   std::string namespace_;
 
   ros::NodeHandle* node_handle_;
-  ros::Publisher pub_score_;
+  ros::Publisher pub_tree_pose_;
   ros::Time state_stamp_;
 
   event::ConnectionPtr update_connection_;

@@ -86,7 +86,7 @@ void monoConvert::monoCallback(const sensor_msgs::ImageConstPtr& raw_msg){
   for (unsigned index = 0; index < depth_msg->height * depth_msg->width; ++index)
     {
       uint16_t raw = raw_data[index];
-      depth_data[index] = (raw == 0) ? bad_point : (float)raw * 0.001f;
+      depth_data[index] = (raw == 0) ? bad_point : (float)raw / (float)pow(2.0, 7);
     }
 
   m_pub_cvt_image.publish(depth_msg);

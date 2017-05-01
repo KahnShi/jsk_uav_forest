@@ -15,6 +15,8 @@ set(PACKAGE_DEPENDENCIES
   bspline_ros
 )
 
+find_package(CGAL REQUIRED COMPONENTS Core)
+
 find_package(catkin REQUIRED COMPONENTS ${PACKAGE_DEPENDENCIES})
 find_package(Eigen3 REQUIRED)
 
@@ -31,7 +33,8 @@ include_directories(
   include
   ${catkin_INCLUDE_DIRS}
   ${Eigen3_INCLUDE_DIRS}
-)
+  ${CGAL_USE_FILE}
+  )
 
 set(LINK_LIBS
   ${catkin_LIBRARIES}
@@ -46,6 +49,11 @@ target_link_libraries(${PROJECT_NAME} ${LINK_LIBS})
 ## Declare a cpp executable
 add_executable(spline_path_node src/spline_path_node.cpp)
 target_link_libraries(spline_path_node ${PROJECT_NAME} ${LINK_LIBS})
+
+add_executable(cgal_collision_test src/cgal_collision_test.cpp)
+target_link_libraries(cgal_collision_test ${PROJECT_NAME} ${LINK_LIBS})
+#include( CGAL_CreateSingleSourceCGALProgram )
+#create_single_source_cgal_program( "cgal_test.cpp" ) # This will create an executable target with name 'cgal_vtk_test'
 
 ## Add cmake target dependencies of the executable/library
 ## as an example, message headers may need to be generated before nodes

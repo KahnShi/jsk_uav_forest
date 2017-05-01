@@ -52,8 +52,11 @@ add_dependencies(vision_detection_pluginlib ${PROJECT_NAME}_gencfg)
 add_executable(vision_detection_node src/vision_detection.cpp)
 target_link_libraries (vision_detection_node ${catkin_LIBRARIES})
 
-add_executable(mono_convert_node src/monoConvert.cpp)
-target_link_libraries (mono_convert_node ${catkin_LIBRARIES})
+add_executable(mono_convert_16UC1_node src/monoConvert16UC1.cpp)
+target_link_libraries (mono_convert_16UC1_node ${catkin_LIBRARIES})
+
+add_executable(mono_convert_32FC1_node src/monoConvert32FC1.cpp)
+target_link_libraries (mono_convert_32FC1_node ${catkin_LIBRARIES})
 
 add_library(tree_tracking src/tree_tracking.cpp)
 target_link_libraries(tree_tracking ${catkin_LIBRARIES})

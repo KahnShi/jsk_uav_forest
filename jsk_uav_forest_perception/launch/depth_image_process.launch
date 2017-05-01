@@ -2,9 +2,9 @@
 <launch>
   <arg name="guidance" default="true" />
 
-  <node pkg="jsk_uav_forest_perception" type="mono_convert_node" name="mono_convert" output="screen" >
+  <node pkg="jsk_uav_forest_perception" type="mono_convert_16UC1_node" name="mono_convert" output="screen" >
     <param name="mono_topic_name" value="guidance/depth_image"/>
-    <param name="cvt_topic_name" value="guidance/depth_image_ros"/>
+    <param name="cvt_topic_name" value="guidance/depth/image_raw"/>
   </node>
 
 

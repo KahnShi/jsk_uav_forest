@@ -113,7 +113,7 @@ void GazeboMovingObject::Load(physics::ModelPtr _model, sdf::ElementPtr _sdf)
     pub_pose_topic_name = _sdf->GetElement("topicName")->Get<std::string>();
   else
     pub_pose_topic_name = "target_tree_pose";
-  pub_tree_pose_ = node_handle_->advertise<geometry_msgs::Point>(pub_pose_topic_name, 1, true);
+  pub_tree_pose_ = node_handle_->advertise<geometry_msgs::PointStamped>(pub_pose_topic_name, 1, true);
 
   ros::NodeHandle param_handle(*node_handle_, "controller");
 
@@ -133,10 +133,15 @@ void GazeboMovingObject::Update()
       return;
     }
   math::Pose pose = link_->GetWorldPose();
-  geometry_msgs::Point object_pose;
-  object_pose.x = pose.pos.x;
-  object_pose.y = pose.pos.y;
-  object_pose.z = pose.pos.z;
+  geometry_msgs::PointStamped object_pose;
+  object_pose.header.frame_id = std::string("/world");
+  object_pose.header.stamp = ros::Time::now();
+  static int seq = 0;
+  object_pose.header.seq = seq;
+  ++seq;
+  object_pose.point.x = pose.pos.x;
+  object_pose.point.y = pose.pos.y;
+  object_pose.point.z = pose.pos.z;
   pub_tree_pose_.publish(object_pose);
 
   // Constant speed to go upper boundary and then lower boundary

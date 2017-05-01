@@ -45,7 +45,7 @@
 #include <stdio.h>
 #include <ros/callback_queue.h>
 #include <ros/ros.h>
-#include <geometry_msgs/Point.h>
+#include <geometry_msgs/PointStamped.h>
 #include <string>
 #include <iostream>
 #include <vector>

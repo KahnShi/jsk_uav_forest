@@ -33,6 +33,7 @@ void triangleGenerator::splineInputParam()
   geometry_msgs::PolygonStamped control_polygon_points;
   for (int i = 0; i < m_control_point_vec.size(); ++i){
     geometry_msgs::Point32 control_point, time_point;
+    // todo: segment_time should be decided by control points topic
     time_point.x = m_spline_segment_time * i;
     control_polygon_points.polygon.points.push_back(time_point);
     vector3dConvertToPoint32(m_control_point_vec[i], control_point);

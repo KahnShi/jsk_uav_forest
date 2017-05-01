@@ -42,7 +42,7 @@ set(LINK_LIBS
 
 
 ## Declare a cpp library
-add_library(${PROJECT_NAME} src/QuadrotorCommand.cpp src/TriangleGenerator.cpp
+add_library(${PROJECT_NAME} src/QuadrotorCommand.cpp src/TriangleGenerator.cpp src/ActivePlannar.cpp
 )
 target_link_libraries(${PROJECT_NAME} ${LINK_LIBS})
 
@@ -50,10 +50,11 @@ target_link_libraries(${PROJECT_NAME} ${LINK_LIBS})
 add_executable(spline_path_node src/spline_path_node.cpp)
 target_link_libraries(spline_path_node ${PROJECT_NAME} ${LINK_LIBS})
 
+add_executable(active_plannar_node src/active_plannar_node.cpp)
+target_link_libraries(active_plannar_node ${PROJECT_NAME} ${LINK_LIBS})
+
 add_executable(cgal_collision_test src/cgal_collision_test.cpp)
 target_link_libraries(cgal_collision_test ${PROJECT_NAME} ${LINK_LIBS})
-#include( CGAL_CreateSingleSourceCGALProgram )
-#create_single_source_cgal_program( "cgal_test.cpp" ) # This will create an executable target with name 'cgal_vtk_test'
 
 ## Add cmake target dependencies of the executable/library
 ## as an example, message headers may need to be generated before nodes

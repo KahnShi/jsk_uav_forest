@@ -16,4 +16,5 @@
     <param name="uav_cmd_traj_yaw_p_gain" value="1.0"/>
   </node>
 
+  <node pkg="jsk_uav_forest_motion" type="active_plannar_node" name="active_plannar_node" output="screen"/>
 </launch>

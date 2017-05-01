@@ -4,17 +4,18 @@ import sys
 import rospy
 from visualization_msgs.msg import MarkerArray
 from visualization_msgs.msg import Marker
+from geometry_msgs.msg import Point
 from geometry_msgs.msg import PointStamped
 from geometry_msgs.msg import PolygonStamped
 from std_msgs.msg import Header
 
 target_poses = [[0.0, 0.0, 0.0], [0.0, 0.0, 0.0], [0.0, 0.0, 0.0]]
-current_header = Header()
 
 def new_marker(pos, id):
     obstacle_marker = Marker()
     obstacle_marker.ns = "obstacle_vis"
-    obstacle_marker.header = current_header
+    obstacle_marker.header.frame_id = "world"
+    obstacle_marker.header.stamp = rospy.Time.now()
     obstacle_marker.action = Marker.ADD
     obstacle_marker.id = id
     obstacle_marker.type = Marker.SPHERE
@@ -39,27 +40,27 @@ def vector2Point(vec):
     pt.x = vec[0]
     pt.y = vec[1]
     pt.z = vec[2]
+    return pt;
 
 def get_poses():
     poses = PolygonStamped()
-    poses.header = current_header
+    poses.header.frame_id = "world"
+    poses.header.stamp = rospy.Time.now()
     for i in range(0, 3):
         poses.polygon.points.append(vector2Point(target_poses[i]))
     return poses
 
 def target1Callback(msg):
-    current_header = msg.header
     target_poses[0][0] = msg.point.x
     target_poses[0][1] = msg.point.y
     target_poses[0][2] = msg.point.z
 
 def target2Callback(msg):
-    current_header = msg.header
     target_poses[1][0] = msg.point.x
     target_poses[1][1] = msg.point.y
     target_poses[1][2] = msg.point.z
+
 def target3Callback(msg):
-    current_header = msg.header
     target_poses[2][0] = msg.point.x
     target_poses[2][1] = msg.point.y
     target_poses[2][2] = msg.point.z

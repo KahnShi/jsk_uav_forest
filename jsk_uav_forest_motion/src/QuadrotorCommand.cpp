@@ -14,13 +14,13 @@ void QuadrotorCommand::onInit()
   private_nh.param("uav_cmd_traj_track_p_gain", m_traj_track_p_gain, 0.3);
   private_nh.param("uav_cmd_traj_track_i_gain", m_traj_track_i_gain, 0.03);
   private_nh.param("uav_cmd_traj_track_d_gain", m_traj_track_d_gain, 0.0);
+  private_nh.param("uav_cmd_traj_yaw_p_gain", m_traj_yaw_p_gain, 1.0);
   private_nh.param("uav_cmd_traj_track_p_term_max", m_traj_track_p_term_max, 6.0);
   private_nh.param("uav_cmd_traj_track_i_term_max", m_traj_track_i_term_max, 4.0);
   private_nh.param("uav_cmd_traj_track_d_term_max", m_traj_track_d_term_max, 0.0);
   private_nh.param("uav_odom_freq", m_uav_odom_freq, 50.0);
 
   m_traj_track_i_term_accumulation.setValue(0.0, 0.0, 0.0);
-  m_uav_yaw_i_term_accumulation = 0.0;
   m_traj_updated = false;
   m_traj_first_updated = false;
   m_uav_arrive_gps_point_flag = false;
@@ -63,6 +63,7 @@ void QuadrotorCommand::trackGlobalTrajectory()
     m_uav_cmd.linear.x = 0.0;
     m_uav_cmd.linear.y = 0.0;
     m_uav_cmd.linear.z = 0.0;
+    m_uav_cmd.angular.z = 0.0;
     return;
   }
 
@@ -76,6 +77,7 @@ void QuadrotorCommand::trackGlobalTrajectory()
   tf::Vector3 uav_des_world_pos = vectorToVector3(m_bspline_traj_ptr->evaluate(uav_current_traj_time));
   tf::Vector3 uav_real_world_pos;
   uav_real_world_pos = m_uav_world_pos;
+  std::vector<double> uav_des_yaw = m_bspline_traj_ptr->evaluateYaw(uav_current_traj_time);
 
   tf::Matrix3x3  uav_rot_mat(m_uav_q);
   tfScalar uav_roll, uav_pitch, uav_yaw;
@@ -99,6 +101,14 @@ void QuadrotorCommand::trackGlobalTrajectory()
   if (uav_vel_absolute_value > m_uav_vel_ub)
     uav_vel = uav_vel * m_uav_vel_ub / uav_vel_absolute_value;
 
+  /* yaw */
+  double uav_yaw_p_term = uav_des_yaw[1] - uav_yaw;
+  if (uav_yaw_p_term > 1.57)
+    uav_yaw_p_term -= 3.14;
+  else if (uav_yaw_p_term < -1.57)
+    uav_yaw_p_term += 3.14;
+  double uav_yaw_vel = uav_des_yaw[0] + uav_yaw_p_term * m_traj_yaw_p_gain;
+
   /* Judge if the controller is locally based on uav coordinate. */
   if (!m_global_coordinate_control_mode){
     uav_vel = r_z.inverse() * uav_vel;
@@ -107,6 +117,10 @@ void QuadrotorCommand::trackGlobalTrajectory()
   m_uav_cmd.linear.x = uav_vel.getX();
   m_uav_cmd.linear.y = uav_vel.getY();
   m_uav_cmd.linear.z = uav_vel.getZ();
+  if (m_yaw_mode)
+    m_uav_cmd.angular.z = uav_yaw_p_term;
+  else
+    m_uav_cmd.angular.z = 0.0;
 }
 
 bool QuadrotorCommand::uavMovingToPresetHeight(double height)

@@ -35,6 +35,7 @@ public:
   ros::NodeHandle m_nh;
   bool m_dji_mode;
   bool m_global_coordinate_control_mode;
+  bool m_yaw_mode;
   double m_uav_vel_ub;
   double m_uav_vel_lb;
   double m_uav_acc_ub;
@@ -53,11 +54,11 @@ public:
   double m_traj_track_p_gain;
   double m_traj_track_i_gain;
   double m_traj_track_d_gain;
+  double m_traj_yaw_p_gain;
   tf::Vector3 m_traj_track_i_term_accumulation;
   double m_traj_track_p_term_max;
   double m_traj_track_i_term_max;
   double m_traj_track_d_term_max;
-  double m_uav_yaw_i_term_accumulation;
   double m_uav_odom_freq;
 
   /* bspline generator */

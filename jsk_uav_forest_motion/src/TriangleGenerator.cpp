@@ -2,6 +2,7 @@
 void triangleGenerator::onInit()
 {
   ros::NodeHandle private_nh("~");
+  private_nh.param("yaw_mode", m_yaw_mode, false);
   private_nh.param("uav_odom_sub_topic_name", m_uav_odom_sub_topic_name, (std::string)"ground_truth/state");
   private_nh.param("spline_path_pub_topic_name", m_spline_path_pub_topic_name, (std::string)"spline_path");
   private_nh.param("uav_cmd_pub_topic_name", m_uav_cmd_pub_topic_name, (std::string)"cmd_vel");
@@ -22,6 +23,7 @@ void triangleGenerator::onInit()
 
   /* uav */
   m_uav.onInit();
+  m_uav.m_yaw_mode = m_yaw_mode;
 
   ROS_INFO("triangleGenerator init finished.");
 }

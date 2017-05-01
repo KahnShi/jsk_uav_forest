@@ -37,6 +37,7 @@ class triangleGenerator
   /* uav */
   nav_msgs::Odometry m_uav_odom;
   QuadrotorCommand m_uav;
+  bool m_yaw_mode;
 
   /* functions */
   void onInit();

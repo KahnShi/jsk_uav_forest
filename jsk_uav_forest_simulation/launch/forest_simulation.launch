@@ -12,6 +12,7 @@
   <arg name="plannar" default="false" />
   <arg name="mapping" default="false" />
   <arg name="aggressive_mode" default="true" />
+  <arg name="yaw_mode" default="false" />
 
   <arg name="start_x" value="-8"/>
   <arg name="start_y" value="0"/>
@@ -51,6 +52,7 @@
   <group if = "$(arg aggressive_mode)">
     <include file="$(find jsk_uav_forest_motion)/launch/aggressive_motion.launch">
       <arg name="uav_odom_topic_name" value="/ground_truth/state" />
+      <arg name="yaw_mode" value="$(arg yaw_mode)" />
     </include>
     <node pkg="jsk_uav_forest_simulation" type="vis_diy_world_node.py" name="vis_diy_world_node">
       <param name="target_number" value="3" />

@@ -4,6 +4,16 @@
   <arg name="yaw_mode" default="false" />
 
   ##### Perception Node #####
+  <!-- 2D laser base -->
+  <include file="$(find jsk_uav_forest_perception)/launch/laser_process.launch">
+  </include>
+
+  <!-- tree detector -->
+  <node pkg="jsk_uav_forest_perception" type="tree_tracking_node" output="screen" name="tree_tracking_node">
+    <param name="laser_scan_topic_name" value="/scan_clustered" />
+    <param name="uav_odom_topic_name" value="/ground_truth/state" />
+    <param name="verbose" value="false" />
+  </node>
 
   ##### Motion Node #####
   <node pkg="jsk_uav_forest_motion" type="spline_path_node" name="aggressive_motion" output="screen" >

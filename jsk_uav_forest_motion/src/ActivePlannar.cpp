@@ -84,14 +84,19 @@ void ActivePlannar::scanClusterCallback(const sensor_msgs::LaserScanConstPtr& la
   std::vector<geometry_msgs::Point32> p;
   int start_id, end_id, mid_id;
   int triangle_num = 0;
+  // To generate triangle for representing unknown region
+  geometry_msgs::Point32 pt_extend_1, pt_extend_2;
   for (size_t i = 0; i < laser_msg->ranges.size(); i++){
     if (!std::isnan(laser_msg->ranges[i])){
       p.push_back(getGlobalPointFromLaser(i*laser_msg->angle_increment+laser_msg->angle_min, fabs(laser_msg->ranges[i])));
+      // triangle unknown region, with an edge with 20.0(as long as possible) length
+      pt_extend_1 = getGlobalPointFromLaser(i*laser_msg->angle_increment+laser_msg->angle_min, fabs(laser_msg->ranges[i]) + 20.0);
       start_id = i;
       ++i;
-      while (i < laser_msg->ranges.size()){
-        if (std::isnan(laser_msg->ranges[i])){
+      while (1){
+        if (i == laser_msg->ranges.size() || std::isnan(laser_msg->ranges[i])){
           p.push_back(getGlobalPointFromLaser((i-1)*laser_msg->angle_increment+laser_msg->angle_min, fabs(laser_msg->ranges[i-1])));
+          pt_extend_2 = getGlobalPointFromLaser((i-1)*laser_msg->angle_increment+laser_msg->angle_min, fabs(laser_msg->ranges[i-1]) + 20.0);
           end_id = i - 1;
           if (start_id + 2 <= end_id)
             mid_id = (start_id + end_id) / 2;
@@ -102,6 +107,11 @@ void ActivePlannar::scanClusterCallback(const sensor_msgs::LaserScanConstPtr& la
           // todo: if laser point's height < 0.2, consider it as the ground
           if (p[2].z > 0.2){
             triangle_num += 1;
+            // Add two unknown region whenever an obstalce is found into triangle mesh
+            m_triangle_mesh.push_back(p);
+            p[2] = pt_extend_1;
+            m_triangle_mesh.push_back(p);
+            p[2] = pt_extend_2;
             m_triangle_mesh.push_back(p);
           }
           p.clear();

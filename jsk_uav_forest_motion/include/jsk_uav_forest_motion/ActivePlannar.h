@@ -30,6 +30,7 @@ public:
   tf::Vector3 m_start_pos;
   tf::Vector3 m_start_vel;
   tf::Vector3 m_target_vel;
+  tf::Matrix3x3 m_uav_rot_mat;
   double m_acc_ub;
   double m_vel_ub;
   double m_control_period;
@@ -52,6 +53,7 @@ public:
   void controlCallback(const ros::TimerEvent&);
   void generateTriangleFromPose(const geometry_msgs::PolygonStampedConstPtr& msg, std::vector<std::vector<geometry_msgs::Point32> >& origin_triangle);
   geometry_msgs::Point32 getGlobalPointFromLaser(double ang, double distance);
+  geometry_msgs::Point32 getLocalPointFromLaser(double ang, double distance);
   void visualizeTriangleMesh();
   void point32ToPoint(geometry_msgs::Point32 pt32, geometry_msgs::Point& pt);
 };

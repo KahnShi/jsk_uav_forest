@@ -33,9 +33,9 @@ void ActivePlannar::uavOdomCallback(const nav_msgs::OdometryConstPtr& uav_msg){
                        uav_msg->pose.pose.orientation.y,
                        uav_msg->pose.pose.orientation.z,
                        uav_msg->pose.pose.orientation.w);
-  tf::Matrix3x3  uav_orientation(uav_q);
+  m_uav_rot_mat.setRotation(uav_q);
   tfScalar r,p,y;
-  uav_orientation.getRPY(r, p, y);
+  m_uav_rot_mat.getRPY(r, p, y);
   m_uav_ang.setValue(r, p, y);
   m_uav_pos.setValue(uav_msg->pose.pose.position.x,
                      uav_msg->pose.pose.position.y,
@@ -99,9 +99,8 @@ void ActivePlannar::scanClusterCallback(const sensor_msgs::LaserScanConstPtr& la
             mid_id = start_id;
           p.push_back(getGlobalPointFromLaser((mid_id-1)*laser_msg->angle_increment+laser_msg->angle_min, fabs(laser_msg->ranges[mid_id])));
           // judge whether cluster is the ground instead of obstacle
-          double range_finder_max_distance = m_uav_pos.z() / (sqrt(1 - pow(cos(m_uav_ang[0]) * cos(m_uav_ang[1]), 2)));
-          // if rangefinder data is very close (eg. <= 1.5m) to its maxinum, this data is likely to be ground's data, it should be abandoned
-          if (fabs(range_finder_max_distance) - fabs(laser_msg->ranges[mid_id]) > 1.5){
+          // todo: if laser point's height < 0.2, consider it as the ground
+          if (p[2].z > 0.2){
             triangle_num += 1;
             m_triangle_mesh.push_back(p);
           }
@@ -113,17 +112,32 @@ void ActivePlannar::scanClusterCallback(const sensor_msgs::LaserScanConstPtr& la
     }
   }
   // todo: currently from ground truth, there are 3 triangles. If more than 3, means having wrong detection.
-  if (triangle_num > 3)
-    ROS_WARN("Wrong obstacles are detected: %d", triangle_num - 3);
+  // todo: sometimes one tree is detected into several parts
+  // if (triangle_num > 3){
+  //   ROS_WARN("Wrong obstacles are detected: %d", triangle_num - 3);
+  //   for (int i = 0; i < triangle_num; ++i){
+  //     std::cout << m_triangle_mesh[i][2].x << ", " << m_triangle_mesh[i][2].y << "\n";
+  //   }
+  // }
   visualizeTriangleMesh();
 }
 
 geometry_msgs::Point32 ActivePlannar::getGlobalPointFromLaser(double ang, double distance){
-  double rot_ang = ang + m_uav_ang[2];
+  geometry_msgs::Point32 pos_ground_ref = getLocalPointFromLaser(ang, distance);
   geometry_msgs::Point32 pt32;
-  pt32.x = distance * cos(rot_ang) * cos(m_uav_ang[0]) * cos(m_uav_ang[1]) + m_uav_pos.x();
-  pt32.y = distance * sin(rot_ang) * cos(m_uav_ang[0]) * cos(m_uav_ang[1]) + m_uav_pos.y();
-  pt32.z = m_uav_pos.z();
+  pt32.x = pos_ground_ref.x + m_uav_pos.x();
+  pt32.y = pos_ground_ref.y + m_uav_pos.y();
+  pt32.z = pos_ground_ref.z + m_uav_pos.z();
+  return pt32;
+}
+
+geometry_msgs::Point32 ActivePlannar::getLocalPointFromLaser(double ang, double distance){
+  tf::Vector3 pos_laser_ref(distance * cos(ang), distance * sin(ang), 0.0);
+  tf::Vector3 pos_ground_ref = m_uav_rot_mat * pos_laser_ref;
+  geometry_msgs::Point32 pt32;
+  pt32.x = pos_ground_ref.getX();
+  pt32.y = pos_ground_ref.getY();
+  pt32.z = pos_ground_ref.getZ();
   return pt32;
 }
 

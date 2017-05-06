@@ -42,7 +42,7 @@ set(LINK_LIBS
 
 
 ## Declare a cpp library
-add_library(${PROJECT_NAME} src/QuadrotorCommand.cpp src/TriangleGenerator.cpp src/ActivePlannar.cpp
+add_library(${PROJECT_NAME} src/QuadrotorCommand.cpp src/TriangleGenerator.cpp src/ActivePlannar.cpp src/CgalTools.cpp
 )
 target_link_libraries(${PROJECT_NAME} ${LINK_LIBS})
 

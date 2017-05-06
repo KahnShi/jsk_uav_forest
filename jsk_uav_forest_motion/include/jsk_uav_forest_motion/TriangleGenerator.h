@@ -32,7 +32,7 @@ class triangleGenerator
   bsplineGenerate m_bspline_generator;
   int m_spline_degree;
   double m_spline_segment_time;
-  std::vector<Vector3d> m_control_point_vec;
+  std::vector<geometry_msgs::Point32> m_control_point_vec;
 
   /* uav */
   nav_msgs::Odometry m_uav_odom;

@@ -32,13 +32,12 @@ void triangleGenerator::splineInputParam()
 {
   geometry_msgs::PolygonStamped control_polygon_points;
   for (int i = 0; i < m_control_point_vec.size(); ++i){
-    geometry_msgs::Point32 control_point, time_point;
+    geometry_msgs::Point32 time_point;
     // todo: segment_time should be decided by control points topic
     time_point.x = m_spline_segment_time * i;
     control_polygon_points.polygon.points.push_back(time_point);
-    vector3dConvertToPoint32(m_control_point_vec[i], control_point);
-    control_polygon_points.polygon.points.push_back(control_point);
-    std::cout << "[" << control_point.x << ", " << control_point.y << ", " << control_point.z << "]\n";
+    control_polygon_points.polygon.points.push_back(m_control_point_vec[i]);
+    std::cout << "[" << m_control_point_vec[i].x << ", " << m_control_point_vec[i].y << ", " << m_control_point_vec[i].z << "]\n";
   }
   m_bspline_generator.bsplineParamInput(&control_polygon_points);
   m_bspline_generator.getDerive();
@@ -84,9 +83,8 @@ void triangleGenerator::controlPointsCallback(const geometry_msgs::PolygonStampe
   if (!m_control_point_vec.empty())
     m_control_point_vec.clear();
   for (int i = 0; i < msg->polygon.points.size(); ++i){
-    Vector3d vec;
-    point32ConvertToVector3d(msg->polygon.points[i], vec);
-    m_control_point_vec.push_back(vec);
+    m_control_point_vec.push_back(msg->polygon.points[i]);
   }
   splineInputParam();
 }
+

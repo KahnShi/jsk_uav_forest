@@ -2,8 +2,10 @@
 #include <iostream>
 typedef CGAL::Cartesian<double>     Kernel;
 typedef Kernel::Point_3             Point_3;
+typedef Kernel::Line_3              Line_3;
 typedef Kernel::Triangle_3          Triangle_3;
 typedef CGAL::Cartesian<double>     Kernel;
+typedef Kernel::Intersect_3         Intersect_3;
 
 int main()
 {
@@ -17,5 +19,17 @@ int main()
     std::cout << "In collision\n";
   else
     std::cout << "No collisiion\n";
+
+  /* Output the intersect point of 2 lines */
+  Line_3 l1(Point_3(0, 1, 1), Point_3(1, 2, 1)), l2(Point_3(3, 0, 1), Point_3(5, 0, 1));
+  CGAL::cpp11::result_of<Intersect_3(Line_3, Line_3)>::type result2 = intersection(l1, l2);
+  if (result2){
+    std::cout << "In collision\n";
+    const Point_3* p = boost::get<Point_3 >(&*result2);
+    std::cout << p->x() << ", " << p->y() << std::endl;
+  }
+  else
+    std::cout << "No collisiion\n";
+
   return 0;
 }

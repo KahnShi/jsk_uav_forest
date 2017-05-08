@@ -14,7 +14,6 @@ set(PACKAGE_DEPENDENCIES
   nav_msgs
   bspline_ros
 )
-
 find_package(CGAL REQUIRED COMPONENTS Core)
 
 find_package(catkin REQUIRED COMPONENTS ${PACKAGE_DEPENDENCIES})
@@ -38,6 +37,7 @@ include_directories(
 
 set(LINK_LIBS
   ${catkin_LIBRARIES}
+  CGAL
   )
 
 

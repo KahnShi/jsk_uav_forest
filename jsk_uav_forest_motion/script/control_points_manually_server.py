@@ -29,7 +29,7 @@ class ControlPointsServer:
         return pt
 
     def manuallyPublish(self):
-        height = 3.0
+        height = 0.0
         self.control_points_ = [[-8, 0, height], #[0, 0]
                                 [-8, 0, height], #[1, 0]
                                 [-7, 0, height], #[2, 1]

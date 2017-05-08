@@ -1,26 +1,136 @@
 #include <jsk_uav_forest_motion/ActivePlannar.h>
 
-void ActivePlannar::onInit(){
+ActivePlannar::ActivePlannar(ros::NodeHandle nh, ros::NodeHandle nhp): m_nh(nh), m_nhp(nhp)
+{
   ros::NodeHandle private_nh("~");
   private_nh.param("control_period", m_control_period, 0.9);
-  private_nh.param("velocity_upper_bound", m_vel_ub, 7.0);
+  private_nh.param("plan_period", m_plan_period, 1.0);
+  private_nh.param("velocity_upper_bound", m_vel_ub, 4.0);
   private_nh.param("acceleration_upper_bound", m_acc_ub, 2.0);
+  private_nh.param("goal_x", m_goal_pos[0], 10.0);
+  private_nh.param("goal_y", m_goal_pos[1], 0.0);
+  private_nh.param("goal_z", m_goal_pos[2], 5.0);
+  private_nh.param("motion_directions", m_n_acc_scope, 3);
+  private_nh.param("motion_directions", m_n_motion_directions, 8);
+  private_nh.param("safety_radius", m_safety_radius, 0.6);
+  private_nh.param("transfer_cost_weight", m_transfer_cost_weight, 1.0);
 
   m_sub_start_flag = m_nh.subscribe<std_msgs::Empty>("active_plannar_start_flag", 1, &ActivePlannar::startFlagCallback, this);
   m_sub_uav_odom = m_nh.subscribe<nav_msgs::Odometry>("ground_truth/state", 1, &ActivePlannar::uavOdomCallback, this);
   m_sub_target_poses = m_nh.subscribe<geometry_msgs::PolygonStamped>("target_tree_poses", 1, &ActivePlannar::targetPosesCallback, this);
   m_sub_scan_cluster = m_nh.subscribe<sensor_msgs::LaserScan>("scan_clustered", 1, &ActivePlannar::scanClusterCallback, this);
-  ros::Timer timer = m_nh.createTimer(ros::Duration(m_control_period), &ActivePlannar::controlCallback, this);
+  m_timer = m_nh.createTimer(ros::Duration(0.1), &ActivePlannar::controlCallback, this);
 
   m_pub_control_points = m_nh.advertise<geometry_msgs::PolygonStamped>(std::string("control_points"), 1);
   m_pub_triangle_mesh = m_nh.advertise<visualization_msgs::Marker>(std::string("triangle_mesh"), 1);
 
   m_active_plannar_start_flag = false;
+
+  m_acc_prev.setValue(0.0, 0.0, 0.0);
+  m_acc_next.setValue(0.0, 0.0, 0.0);
 }
 
-void ActivePlannar::controlCallback(const ros::TimerEvent&)
+void ActivePlannar::controlCallback(const ros::TimerEvent& e)
 {
-  
+  if (!m_active_plannar_start_flag)
+    return;
+  std::vector<geometry_msgs::Point32> control_pts;
+  geometry_msgs::Point32 control_pt;
+  control_pt.x = m_uav_pos.x();
+  control_pt.y = m_uav_pos.y();
+  // todo: 2d plan
+  control_pt.z = m_uav_pos.z();
+  control_pts.push_back(control_pt);
+  control_pt.x += m_uav_vel.x() * 2 * m_plan_period;
+  control_pt.y += m_uav_vel.y() * 2 * m_plan_period;
+  // todo: 2d plan
+  control_pt.z += 0.0;
+  control_pts.push_back(control_pt);
+
+  geometry_msgs::Point32 new_pt_center;
+  new_pt_center.x = control_pts[1].x + 2 * (control_pts[1].x - control_pts[0].x);
+  new_pt_center.y = control_pts[1].y + 2 * (control_pts[1].y - control_pts[0].y);
+  // todo: 2d plan
+  new_pt_center.z = control_pt.z;
+
+  control_pts.push_back(new_pt_center);
+  std::vector<double> scores;
+  // todo: add when acceleration = 0
+  int max_score_id = 0; //-1
+  for (int i = 0; i < m_n_acc_scope * m_n_motion_directions; ++i){ // i = -1
+    tf::Vector3 acc_next(0.0, 0.0, 0.0);
+    if (i != -1){
+      int acc_id = i % m_n_acc_scope + 1;
+      int direction_id = i % m_n_motion_directions;
+      double acc = m_acc_ub * acc_id / m_n_acc_scope;
+      double ang = m_uav_ang.z() + 2 * 3.14 * direction_id / m_n_motion_directions;
+      // todo: currently only 2d planning
+      acc_next.setValue(acc * sin(ang), acc * cos(ang), 0.0);
+      control_pts[2].x = new_pt_center.x + acc_next.x();
+      control_pts[2].y = new_pt_center.y + acc_next.y();
+      control_pts[2].z = new_pt_center.z + acc_next.z();
+    }
+    else{
+      acc_next.setValue(0.0, 0.0, 0.0);
+    }
+    if (isControlTriangleFeasible(control_pts)){
+      double cur_score = getControlTriangleScore(control_pts, acc_next);
+      scores.push_back(cur_score);
+      if (cur_score > scores[max_score_id]){
+        max_score_id = i;
+        m_acc_next = acc_next;
+      }
+    }
+    else
+      scores.push_back(-10000.0);
+  }
+  geometry_msgs::PolygonStamped control_polygon;
+  // judge whether all the situations are unavailable
+  if (scores[max_score_id] < -10000.0 - 0.1){
+    ROS_WARN("No available path.");
+    // e-stop with maximum acceleration
+    // todo
+    control_pts[2] = control_pts[0];
+  }
+  else{
+    control_pts[2].x = new_pt_center.x + m_acc_next.x();
+    control_pts[2].y = new_pt_center.y + m_acc_next.y();
+    control_pts[2].z = new_pt_center.z + m_acc_next.z();
+  }
+  for (int i = 0; i < 3; ++i)
+    control_polygon.polygon.points.push_back(control_pts[i]);
+  m_pub_control_points.publish(control_polygon);
+  m_acc_prev = m_acc_next;
+}
+
+bool ActivePlannar::isControlTriangleFeasible(std::vector<geometry_msgs::Point32>& control_pts){
+  /* velocity feasible detection */
+  double vel = sqrt(pow(control_pts[2].z - control_pts[1].z, 2) + pow(control_pts[2].y - control_pts[1].y, 2) + pow(control_pts[2].x - control_pts[1].x, 2));
+  if (vel > m_vel_ub)
+    return false;
+  /* collision free detection */
+  bool is_no_collision = true;
+  for (int i = 0; i < m_triangle_mesh_buf.size(); ++i){
+    if (doTriangleInteresect2(control_pts, m_triangle_mesh_buf[i])){
+      is_no_collision = false;
+      break;
+    }
+  }
+  if (is_no_collision)
+    return true;
+  else
+    return false;
+}
+
+double ActivePlannar::getControlTriangleScore(std::vector<geometry_msgs::Point32>& control_pts, tf::Vector3 acc_next){
+  /* contribution to trip - transfer cost */
+  double score, trip_contribution, transfer_cost;
+  trip_contribution = sqrt(pow(control_pts[0].z - m_goal_pos[2], 2) + pow(control_pts[0].y - m_goal_pos[1], 2) + pow(control_pts[0].x - m_goal_pos[0], 2)) - sqrt(pow(control_pts[2].z - m_goal_pos[2], 2) + pow(control_pts[2].y - m_goal_pos[1], 2) + pow(control_pts[2].x - m_goal_pos[0], 2));
+
+  transfer_cost = acc_next.distance(m_acc_prev);
+
+  score = trip_contribution - m_transfer_cost_weight * transfer_cost;
+  return score;
 }
 
 void ActivePlannar::startFlagCallback(const std_msgs::Empty msg){
@@ -40,6 +150,9 @@ void ActivePlannar::uavOdomCallback(const nav_msgs::OdometryConstPtr& uav_msg){
   m_uav_pos.setValue(uav_msg->pose.pose.position.x,
                      uav_msg->pose.pose.position.y,
                      uav_msg->pose.pose.position.z);
+  m_uav_vel.setValue(uav_msg->twist.twist.linear.x,
+                     uav_msg->twist.twist.linear.y,
+                     uav_msg->twist.twist.linear.z);
 }
 
 void ActivePlannar::targetPosesCallback(const geometry_msgs::PolygonStampedConstPtr& msg){
@@ -66,12 +179,22 @@ void ActivePlannar::visualizeTriangleMesh(){
   std_msgs::ColorRGBA color_r;
   color_r.r = 0.0; color_r.g = 0.0; color_r.b = 1.0; color_r.a = 1.0;
   srand (time(NULL));
-  for (int i = 0; i < m_triangle_mesh.size(); ++i){
-    point32ToPoint(m_triangle_mesh[i][0], pt);
+  // for (int i = 0; i < m_triangle_mesh.size(); ++i){
+  //   point32ToPoint(m_triangle_mesh[i][0], pt);
+  //   triangle_list_marker.points.push_back(pt);
+  //   point32ToPoint(m_triangle_mesh[i][1], pt);
+  //   triangle_list_marker.points.push_back(pt);
+  //   point32ToPoint(m_triangle_mesh[i][2], pt);
+  //   triangle_list_marker.points.push_back(pt);
+  //   color_r.b = rand() / (double)RAND_MAX * 1.0;
+  //   triangle_list_marker.colors.push_back(color_r);
+  // }
+  for (int i = 0; i < m_triangle_mesh_buf.size(); ++i){
+    point32ToPoint(m_triangle_mesh_buf[i][0], pt);
     triangle_list_marker.points.push_back(pt);
-    point32ToPoint(m_triangle_mesh[i][1], pt);
+    point32ToPoint(m_triangle_mesh_buf[i][1], pt);
     triangle_list_marker.points.push_back(pt);
-    point32ToPoint(m_triangle_mesh[i][2], pt);
+    point32ToPoint(m_triangle_mesh_buf[i][2], pt);
     triangle_list_marker.points.push_back(pt);
     color_r.b = rand() / (double)RAND_MAX * 1.0;
     triangle_list_marker.colors.push_back(color_r);
@@ -81,6 +204,7 @@ void ActivePlannar::visualizeTriangleMesh(){
 
 void ActivePlannar::scanClusterCallback(const sensor_msgs::LaserScanConstPtr& laser_msg){
   m_triangle_mesh.clear();
+  m_triangle_mesh_buf.clear();
   std::vector<geometry_msgs::Point32> p;
   int start_id, end_id, mid_id;
   int triangle_num = 0;
@@ -89,8 +213,8 @@ void ActivePlannar::scanClusterCallback(const sensor_msgs::LaserScanConstPtr& la
   for (size_t i = 0; i < laser_msg->ranges.size(); i++){
     if (!std::isnan(laser_msg->ranges[i])){
       p.push_back(getGlobalPointFromLaser(i*laser_msg->angle_increment+laser_msg->angle_min, fabs(laser_msg->ranges[i])));
-      // triangle unknown region, with an edge with 20.0(as long as possible) length
-      pt_extend_1 = getGlobalPointFromLaser(i*laser_msg->angle_increment+laser_msg->angle_min, fabs(laser_msg->ranges[i]) + 20.0);
+      // triangle unknown region, with an edge with 10.0(as long as possible) length
+      pt_extend_1 = getGlobalPointFromLaser(i*laser_msg->angle_increment+laser_msg->angle_min, fabs(laser_msg->ranges[i]) + 10.0);
       start_id = i;
       ++i;
       while (1){
@@ -108,11 +232,25 @@ void ActivePlannar::scanClusterCallback(const sensor_msgs::LaserScanConstPtr& la
           if (p[2].z > 0.2){
             triangle_num += 1;
             // Add two unknown region whenever an obstalce is found into triangle mesh
+            // todo: 2d plan
+            for (int j = 0; j < 3; ++j)
+              p[j].z = m_goal_pos[2];
+            std::vector<geometry_msgs::Point32> p_buf = p;
             m_triangle_mesh.push_back(p);
+            extendTriangleMargin(p, p_buf, m_safety_radius);
+            m_triangle_mesh_buf.push_back(p_buf);
+
             p[2] = pt_extend_1;
+            p[2].z = m_goal_pos[2];
             m_triangle_mesh.push_back(p);
+            extendTriangleMargin(p, p_buf, m_safety_radius);
+            m_triangle_mesh_buf.push_back(p_buf);
+
             p[2] = pt_extend_2;
+            p[2].z = m_goal_pos[2];
             m_triangle_mesh.push_back(p);
+            extendTriangleMargin(p, p_buf, m_safety_radius);
+            m_triangle_mesh_buf.push_back(p_buf);
           }
           p.clear();
           break;

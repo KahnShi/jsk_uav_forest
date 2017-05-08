@@ -47,6 +47,7 @@ class triangleGenerator
   void uavOdomCallback(const nav_msgs::OdometryConstPtr& msg);
   void uavStartFlagCallback(const std_msgs::Empty msg);
   void controlPointsCallback(const geometry_msgs::PolygonStampedConstPtr& msg);
+  void setControlPoints(std::vector<geometry_msgs::Point32>& control_pts);
 };
 
 #endif

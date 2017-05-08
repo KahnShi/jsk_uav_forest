@@ -3,9 +3,11 @@
 int main(int argc, char** argv)
 {
   ros::init(argc, argv, "active_plannar");
-  ActivePlannar active_plannar;
-  active_plannar.onInit();
+  ros::NodeHandle nh;
+  ros::NodeHandle nhp("~");
+  ActivePlannar* active_plannar = new ActivePlannar(nh, nhp);
 
   ros::spin();
+  delete active_plannar;
   return 0;
 }

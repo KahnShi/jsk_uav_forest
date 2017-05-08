@@ -26,5 +26,15 @@
     <param name="uav_cmd_traj_yaw_p_gain" value="1.0"/>
   </node>
 
-  <node pkg="jsk_uav_forest_motion" type="active_plannar_node" name="active_plannar_node" output="screen"/>
+  <node pkg="jsk_uav_forest_motion" type="active_plannar_node" name="active_plannar_node" output="screen">
+    <param name="control_period" value="0.99"/>
+    <param name="plan_period" value="1.0"/>
+    <param name="goal_x" value="10.0"/>
+    <param name="goal_y" value="0.0"/>
+    <param name="goal_z" value="5.0"/>
+    <param name="velocity_upper_bound" value="4.0"/>
+    <param name="acceleration_upper_bound" value="2.0"/>
+    <param name="transfer_cost_weight" value="0.0"/>
+    <param name="velocity_differ_cost_weight" value="0.0"/>
+  </node>
 </launch>

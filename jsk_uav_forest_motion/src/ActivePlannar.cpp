@@ -2,18 +2,18 @@
 
 ActivePlannar::ActivePlannar(ros::NodeHandle nh, ros::NodeHandle nhp): m_nh(nh), m_nhp(nhp)
 {
-  ros::NodeHandle private_nh("~");
-  private_nh.param("control_period", m_control_period, 0.9);
-  private_nh.param("plan_period", m_plan_period, 1.0);
-  private_nh.param("velocity_upper_bound", m_vel_ub, 4.0);
-  private_nh.param("acceleration_upper_bound", m_acc_ub, 2.0);
-  private_nh.param("goal_x", m_goal_pos[0], 10.0);
-  private_nh.param("goal_y", m_goal_pos[1], 0.0);
-  private_nh.param("goal_z", m_goal_pos[2], 5.0);
-  private_nh.param("motion_directions", m_n_acc_scope, 3);
-  private_nh.param("motion_directions", m_n_motion_directions, 8);
-  private_nh.param("safety_radius", m_safety_radius, 0.6);
-  private_nh.param("transfer_cost_weight", m_transfer_cost_weight, 1.0);
+  m_nhp.param("control_period", m_control_period, 0.95);
+  m_nhp.param("plan_period", m_plan_period, 1.0);
+  m_nhp.param("velocity_upper_bound", m_vel_ub, 4.0);
+  m_nhp.param("acceleration_upper_bound", m_acc_ub, 2.0);
+  m_nhp.param("goal_x", m_goal_pos[0], 10.0);
+  m_nhp.param("goal_y", m_goal_pos[1], 0.0);
+  m_nhp.param("goal_z", m_goal_pos[2], 5.0);
+  m_nhp.param("motion_directions", m_n_acc_scope, 3);
+  m_nhp.param("motion_directions", m_n_motion_directions, 8);
+  m_nhp.param("safety_radius", m_safety_radius, 0.6);
+  m_nhp.param("transfer_cost_weight", m_transfer_cost_weight, 0.0);
+  m_nhp.param("velocity_differ_cost_weight", m_velocity_differ_cost_weight, 0.3);
 
   m_sub_start_flag = m_nh.subscribe<std_msgs::Empty>("active_plannar_start_flag", 1, &ActivePlannar::startFlagCallback, this);
   m_sub_uav_odom = m_nh.subscribe<nav_msgs::Odometry>("ground_truth/state", 1, &ActivePlannar::uavOdomCallback, this);
@@ -41,8 +41,8 @@ void ActivePlannar::controlCallback(const ros::TimerEvent& e)
   // todo: 2d plan
   control_pt.z = m_uav_pos.z();
   control_pts.push_back(control_pt);
-  control_pt.x += m_uav_vel.x() * 2 * m_plan_period;
-  control_pt.y += m_uav_vel.y() * 2 * m_plan_period;
+  control_pt.x += m_uav_vel.x() / 2 * m_plan_period;
+  control_pt.y += m_uav_vel.y() / 2 * m_plan_period;
   // todo: 2d plan
   control_pt.z += 0.0;
   control_pts.push_back(control_pt);
@@ -57,28 +57,35 @@ void ActivePlannar::controlCallback(const ros::TimerEvent& e)
   std::vector<double> scores;
   // todo: add when acceleration = 0
   int max_score_id = 0; //-1
+  // assign initial value to m_acc_next
+  m_acc_next.setValue(0.0, 0.0, 0.0);
   for (int i = 0; i < m_n_acc_scope * m_n_motion_directions; ++i){ // i = -1
     tf::Vector3 acc_next(0.0, 0.0, 0.0);
-    if (i != -1){
+    if (i == -1){
+      acc_next.setValue(0.0, 0.0, 0.0);
+    }
+    else{
       int acc_id = i % m_n_acc_scope + 1;
       int direction_id = i % m_n_motion_directions;
       double acc = m_acc_ub * acc_id / m_n_acc_scope;
       double ang = m_uav_ang.z() + 2 * 3.14 * direction_id / m_n_motion_directions;
       // todo: currently only 2d planning
       acc_next.setValue(acc * sin(ang), acc * cos(ang), 0.0);
-      control_pts[2].x = new_pt_center.x + acc_next.x();
-      control_pts[2].y = new_pt_center.y + acc_next.y();
-      control_pts[2].z = new_pt_center.z + acc_next.z();
     }
-    else{
-      acc_next.setValue(0.0, 0.0, 0.0);
-    }
+    control_pts[2].x = new_pt_center.x + acc_next.x() * m_plan_period;
+    control_pts[2].y = new_pt_center.y + acc_next.y() * m_plan_period;
+    control_pts[2].z = new_pt_center.z + acc_next.z() * m_plan_period;
+    control_pts[2].x = (control_pts[2].x + control_pts[1].x) / 2;
+    control_pts[2].y = (control_pts[2].y + control_pts[1].y) / 2;
+    control_pts[2].z = (control_pts[2].z + control_pts[1].z) / 2;
     if (isControlTriangleFeasible(control_pts)){
       double cur_score = getControlTriangleScore(control_pts, acc_next);
       scores.push_back(cur_score);
-      if (cur_score > scores[max_score_id]){
+      if (cur_score >= scores[max_score_id]){
         max_score_id = i;
-        m_acc_next = acc_next;
+        m_acc_next.setX(acc_next.getX());
+        m_acc_next.setY(acc_next.getY());
+        m_acc_next.setZ(acc_next.getZ());
       }
     }
     else
@@ -86,26 +93,34 @@ void ActivePlannar::controlCallback(const ros::TimerEvent& e)
   }
   geometry_msgs::PolygonStamped control_polygon;
   // judge whether all the situations are unavailable
-  if (scores[max_score_id] < -10000.0 - 0.1){
+  if (scores[max_score_id] < -10000.0 + 0.1){
     ROS_WARN("No available path.");
     // e-stop with maximum acceleration
     // todo
-    control_pts[2] = control_pts[0];
+    m_acc_next.setValue(-m_acc_ub, 0.0, 0.0);
+    control_pts[2].x = new_pt_center.x + m_acc_next.x() * m_plan_period;
+    control_pts[2].y = new_pt_center.y + m_acc_next.y() * m_plan_period;
+    control_pts[2].z = new_pt_center.z + m_acc_next.z() * m_plan_period;
   }
   else{
-    control_pts[2].x = new_pt_center.x + m_acc_next.x();
-    control_pts[2].y = new_pt_center.y + m_acc_next.y();
-    control_pts[2].z = new_pt_center.z + m_acc_next.z();
+    control_pts[2].x = new_pt_center.x + m_acc_next.x() * m_plan_period;
+    control_pts[2].y = new_pt_center.y + m_acc_next.y() * m_plan_period;
+    control_pts[2].z = new_pt_center.z + m_acc_next.z() * m_plan_period;
   }
+  control_pts[2].x = (control_pts[2].x + control_pts[1].x) / 2;
+  control_pts[2].y = (control_pts[2].y + control_pts[1].y) / 2;
+  control_pts[2].z = (control_pts[2].z + control_pts[1].z) / 2;
   for (int i = 0; i < 3; ++i)
     control_polygon.polygon.points.push_back(control_pts[i]);
   m_pub_control_points.publish(control_polygon);
+  std::cout << "acc: " << m_acc_next.x() << ", " << m_acc_next.y() << "\n\n";
   m_acc_prev = m_acc_next;
 }
 
 bool ActivePlannar::isControlTriangleFeasible(std::vector<geometry_msgs::Point32>& control_pts){
   /* velocity feasible detection */
-  double vel = sqrt(pow(control_pts[2].z - control_pts[1].z, 2) + pow(control_pts[2].y - control_pts[1].y, 2) + pow(control_pts[2].x - control_pts[1].x, 2));
+  // todo: 2d plan
+  double vel = sqrt(pow(0.0 - 0.0, 2) + pow(control_pts[2].y - control_pts[1].y, 2) + pow(control_pts[2].x - control_pts[1].x, 2)) / m_plan_period;
   if (vel > m_vel_ub)
     return false;
   /* collision free detection */
@@ -124,12 +139,16 @@ bool ActivePlannar::isControlTriangleFeasible(std::vector<geometry_msgs::Point32
 
 double ActivePlannar::getControlTriangleScore(std::vector<geometry_msgs::Point32>& control_pts, tf::Vector3 acc_next){
   /* contribution to trip - transfer cost */
-  double score, trip_contribution, transfer_cost;
-  trip_contribution = sqrt(pow(control_pts[0].z - m_goal_pos[2], 2) + pow(control_pts[0].y - m_goal_pos[1], 2) + pow(control_pts[0].x - m_goal_pos[0], 2)) - sqrt(pow(control_pts[2].z - m_goal_pos[2], 2) + pow(control_pts[2].y - m_goal_pos[1], 2) + pow(control_pts[2].x - m_goal_pos[0], 2));
+  double score, trip_contribution, transfer_cost, velocity_score;
+  // todo: 2d plan
+  trip_contribution = sqrt(pow(0.0 - 0.0, 2) + pow(control_pts[0].y - m_goal_pos[1], 2) + pow(control_pts[0].x - m_goal_pos[0], 2)) - sqrt(pow(0.0 - 0.0, 2) + pow(control_pts[2].y - m_goal_pos[1], 2) + pow(control_pts[2].x - m_goal_pos[0], 2));
 
   transfer_cost = acc_next.distance(m_acc_prev);
 
-  score = trip_contribution - m_transfer_cost_weight * transfer_cost;
+  double goal_velocity[3] = {0.0, 0.0, 0.0};
+  velocity_score = sqrt(pow(0.0, 2) + pow((control_pts[2].y - control_pts[1].y) / m_plan_period - goal_velocity[1], 2) + pow((control_pts[2].x - control_pts[1].x) / m_plan_period - goal_velocity[0], 2));
+
+  score = trip_contribution - m_transfer_cost_weight * transfer_cost - m_velocity_differ_cost_weight * velocity_score;
   return score;
 }
 

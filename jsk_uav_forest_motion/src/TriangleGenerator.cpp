@@ -64,7 +64,7 @@ void triangleGenerator::uavOdomCallback(const nav_msgs::OdometryConstPtr& msg)
   m_uav_odom = *msg;
   m_uav.getUavOdom(msg);
   if (m_uav.m_uav_state == 0){
-    m_uav.uavMovingToPresetHeight(5.0);
+    m_uav.uavMovingToPresetHeight(2.0);
     m_pub_uav_cmd.publish(m_uav.m_uav_cmd);
     return;
   }

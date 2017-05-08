@@ -20,7 +20,7 @@
 
   <include file="$(find gazebo_ros)/launch/empty_world.launch">
     <arg name="world_name" value="$(find jsk_uav_forest_simulation)/gazebo_model/world/forest.world" unless="$(arg aggressive_mode)" />
-    <arg name="world_name" value="$(find jsk_uav_forest_simulation)/gazebo_model/world/forest_diy.world" if="$(arg aggressive_mode)" />
+    <arg name="world_name" value="$(find jsk_uav_forest_simulation)/gazebo_model/world/world_template.world" if="$(arg aggressive_mode)" />
     <arg name="debug" value="$(arg debug)"/>
     <arg name="gui" value="$(arg gui)" />
     <arg name="headless" default="$(arg headless)"/>

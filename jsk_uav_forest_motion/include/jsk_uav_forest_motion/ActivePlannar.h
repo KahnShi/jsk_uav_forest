@@ -47,6 +47,7 @@ private:
   tf::Vector3 m_acc_next;
   tf::Vector3 m_acc_prev;
   double m_transfer_cost_weight;
+  double m_velocity_differ_cost_weight;
 
   /* motion primitives */
   int m_n_acc_scope;
